@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Expense App</title>
+</head>
+
+<body>
+
+<h2>Dashboard</h2>
+
+<!-- ADD EXPENSE -->
+<input id="amount" placeholder="Amount">
+<input id="desc" placeholder="Description">
+
+<button onclick="addExpense()">Add Expense</button>
+
+<!-- PREMIUM -->
+<button id="buyBtn" onclick="buyPremium()">Buy Premium </button>
+
+<!-- LOGOUT -->
+<button onclick="logout()">Logout</button>
+
+<!-- EXPENSE SECTION -->
+<h3>Your Expenses</h3>
+
+<label>Expenses per page:</label>
+<select id="pageSize" onchange="changePageSize()">
+    <option value="2">2</option>
+    <option value="5">5</option>
+    <option value="10">10</option>
+</select>
+
+<ul id="list"></ul>
+
+<h3>Total: ₹<span id="total">0</span></h3>
+
+<div id="pagination"></div>
+
+<!-- LEADERBOARD -->
+<button onclick="loadLeaderboard()">Leaderboard</button>
+<ul id="leaderboard"></ul>
+
+<!-- REPORT FILTER -->
+<label>Report:</label>
+<select id="reportFilter">
+    <option value="all">All</option>
+    <option value="daily">Daily</option>
+    <option value="weekly">Weekly</option>
+    <option value="monthly">Monthly</option>
+    <option value="yearly">Yearly</option>
+</select>
+
+<!-- DOWNLOAD -->
+<button id="downloadBtn" onclick="downloadReport()" disabled>
+    Download Report
+</button>
+
+<!-- : ORDER FIXED -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script src="script.js"></script>
+
+</body>
+</html>

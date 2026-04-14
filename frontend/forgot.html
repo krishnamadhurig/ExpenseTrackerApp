@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Forgot Password</title>
+</head>
+<body>
+    <h2>Forgot Password</h2>
+
+    <input type="email" id="email" placeholder="Enter your email" required />
+    <button onclick="forgotPassword()">Send Reset Link</button>
+
+    <p id="message"></p>
+
+    <script>
+        const BASE_URL = "http://localhost:3000/api";
+
+        async function forgotPassword() {
+            const email = document.getElementById("email").value.trim();
+            const messageEl = document.getElementById("message");
+
+            if (!email) {
+                alert("Please enter your email first!");
+                return;
+            }
+
+            try {
+                const res = await fetch(`${BASE_URL}/forgotpassword`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email })
+                });
+
+                const data = await res.json();
+                messageEl.textContent = data.message;
+
+                if (res.ok) alert("Check your email for the reset link!");
+            } catch (err) {
+                console.error(err);
+                messageEl.textContent = "Something went wrong!";
+            }
+        }
+    </script>
+</body>
+</html>

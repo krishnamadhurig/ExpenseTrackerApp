@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Reset Password</title>
+</head>
+<body>
+    <h2>Reset Password</h2>
+
+    <input type="password" id="newPassword" placeholder="Enter new password" required />
+    <button onclick="updatePassword()">Reset Password</button>
+
+    <p id="message"></p>
+
+    <script>
+        const BASE_URL = "http://localhost:3000/api";
+
+        // get UUID from query string
+        const urlParams = new URLSearchParams(window.location.search);
+        const requestId = urlParams.get("id");
+
+        async function updatePassword() {
+            const newPassword = document.getElementById("newPassword").value.trim();
+            const messageEl = document.getElementById("message");
+
+            if (!newPassword) {
+                alert("Please enter a new password!");
+                return;
+            }
+
+            if (!requestId) {
+                messageEl.textContent = "Invalid or missing reset ID!";
+                return;
+            }
+
+            try {
+                const res = await fetch(`${BASE_URL}/updatepassword/${requestId}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ newPassword })
+                });
+
+                const text = await res.text();
+                messageEl.textContent = text;
+
+            } catch (err) {
+                console.error(err);
+                messageEl.textContent = "Something went wrong!";
+            }
+        }
+    </script>
+</body>
+</html>
