@@ -1,76 +1,120 @@
-const Razorpay = require('razorpay');
-const crypto = require('crypto');
-const User = require('../models/user');
-const Order = require('../models/order');
+const Razorpay = require("razorpay");
+const crypto = require("crypto");
+const User = require("../models/user");
+const Order = require("../models/order");
+const  sequelize  = require("../config/db");
+
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_SECRET
+    key_secret: process.env.RAZORPAY_SECRET,
+});
 
-})
+
+// ---------------- CREATE ORDER ----------------
 exports.createOrder = async (req, res) => {
     try {
+        const amount = 50000; // ₹500 in paise (make dynamic if needed)
+
         const options = {
-            amount: 50000, //500rupess(in paise)
-            currency: "INR"
+            amount,
+            currency: "INR",
+            receipt: `rcpt_${Date.now()}`,
         };
+
         const order = await razorpay.orders.create(options);
 
-        //save in db
         await Order.create({
             orderId: order.id,
-            status: "PENDING",
-            UserId: req.user.id
+            status: "CREATED",
+            amount,
+            UserId: req.user.id,
         });
-        res.json({
+
+        return res.status(201).json({
+            success: true,
             order,
-            key_id: process.env.RAZORPAY_KEY_ID
+            key_id: process.env.RAZORPAY_KEY_ID,
         });
+
     } catch (err) {
-        console.log(err);
-        res.status(500).json({ message: "Order creation failed" });
-
+        console.error("Create Order Error:", err);
+        return res.status(500).json({ message: "Order creation failed" });
     }
-}
+};
+
+
+// ---------------- VERIFY PAYMENT ----------------
 exports.verifyPayment = async (req, res) => {
+    const t = await sequelize.transaction();
+
     try {
-        const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+        const {
+            razorpay_order_id,
+            razorpay_payment_id,
+            razorpay_signature,
+        } = req.body;
 
-        const sign = razorpay_order_id + "|" + razorpay_payment_id;
+        // Validate input
+        if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+            await t.rollback();
+            return res.status(400).json({ message: "Missing payment details" });
+        }
 
-        const expectedSign = crypto
+        // Create expected signature
+        const generatedSignature = crypto
             .createHmac("sha256", process.env.RAZORPAY_SECRET)
-            .update(sign)
+            .update(`${razorpay_order_id}|${razorpay_payment_id}`)
             .digest("hex");
 
-        //  find order in DB
-        const order = await Order.findOne({ where: { orderId: razorpay_order_id } });
-        // If order is null,  app will crash //
+        const isValidSignature = generatedSignature === razorpay_signature;
+
+        // Find order
+        const order = await Order.findOne({
+            where: { orderId: razorpay_order_id },
+            transaction: t,
+            lock: t.LOCK.UPDATE,
+        });
+
         if (!order) {
+            await t.rollback();
             return res.status(404).json({ message: "Order not found" });
         }
 
-        if (expectedSign === razorpay_signature) {
-            // SUCCESS
-            order.status = "SUCCESSFUL";
-            order.paymentId = razorpay_payment_id;
-            await order.save();
+        if (!isValidSignature) {
+            await order.update(
+                { status: "FAILED" },
+                { transaction: t }
+            );
 
-            const user = await User.findByPk(req.user.id);
-            user.isPremium = true;
-            await user.save();
-
-            return res.json({ success: true });
-
-        } else {
-            //  FAILED
-            order.status = "FAILED";
-            await order.save();
-
-            return res.status(400).json({ success: false });
+            await t.commit();
+            return res.status(400).json({ success: false, message: "Invalid signature" });
         }
 
+        // Update order as successful
+        await order.update(
+            {
+                status: "SUCCESS",
+                paymentId: razorpay_payment_id,
+            },
+            { transaction: t }
+        );
+
+        // Update user premium status safely
+        await User.update(
+            { isPremium: true },
+            { where: { id: req.user.id }, transaction: t }
+        );
+
+        await t.commit();
+
+        return res.json({
+            success: true,
+            message: "Payment verified successfully",
+        });
+
     } catch (err) {
-        console.log(err);
-        res.status(500).json({ message: "Verification failed" });
+        await t.rollback();
+        console.error("Verify Payment Error:", err);
+        return res.status(500).json({ message: "Verification failed" });
     }
 };

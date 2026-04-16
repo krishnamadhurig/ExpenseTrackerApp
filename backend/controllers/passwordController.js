@@ -22,6 +22,7 @@ exports.forgotPassword = async (req, res) => {
             UserId: user.id,
             isActive: true
         });
+        
 
         const resetLink = `http://localhost:3000/api/resetpassword/${requestId}`;
         console.log("RESET LINK:", resetLink);

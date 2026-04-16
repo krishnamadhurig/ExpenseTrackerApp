@@ -21,7 +21,7 @@ const ForgotPasswordRequest = sequelize.define("ForgotPasswordRequest", {
         type: DataTypes.BOOLEAN,           // true or false
         defaultValue: true                 // request is active by default
     },
-    userId: {
+    UserId: {
     type: DataTypes.INTEGER,
     allowNull: false
 }

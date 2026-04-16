@@ -11,6 +11,7 @@ exports.downloadReport = async (req, res) => {
 
         const now = new Date();
 
+        // 🔍 Filter based on type
         const filtered = expenses.filter(exp => {
             const d = new Date(exp.createdAt);
 
@@ -36,13 +37,56 @@ exports.downloadReport = async (req, res) => {
             return true;
         });
 
-        // CSV creation
-        let csv = "Amount,Description,Category,Date\n";
+        // 📊 CALCULATE TOTALS
 
+        const weeklyTotal = expenses
+            .filter(exp => {
+                const d = new Date(exp.createdAt);
+                const weekAgo = new Date();
+                weekAgo.setDate(now.getDate() - 7);
+                return d >= weekAgo;
+            })
+            .reduce((sum, exp) => sum + Number(exp.amount), 0);
+
+        const monthlyTotal = expenses
+            .filter(exp => {
+                const d = new Date(exp.createdAt);
+                return d.getMonth() === now.getMonth() &&
+                       d.getFullYear() === now.getFullYear();
+            })
+            .reduce((sum, exp) => sum + Number(exp.amount), 0);
+
+        const yearlyTotal = expenses
+            .filter(exp => {
+                const d = new Date(exp.createdAt);
+                return d.getFullYear() === now.getFullYear();
+            })
+            .reduce((sum, exp) => sum + Number(exp.amount), 0);
+
+        // 🧾 CSV CREATION
+
+        let csv = "";
+
+        // Title
+        csv += `Report Type: ${type}\n\n`;
+
+        // Summary
+        csv += `Weekly Total: ${weeklyTotal}\n`;
+        csv += `Monthly Total: ${monthlyTotal}\n`;
+        csv += `Yearly Total: ${yearlyTotal}\n\n`;
+
+        // Table Header
+        csv += "Amount,Description,Category,Date\n";
+
+        // Data Rows
         filtered.forEach(exp => {
-            csv += `${exp.amount},${exp.description},${exp.category},${exp.createdAt}\n`;
+            const d = new Date(exp.createdAt);
+            const dateOnly = d.toISOString().split("T")[0];
+
+            csv += `${exp.amount},${exp.description},${exp.category},${dateOnly}\n`;
         });
 
+        // 📤 Send file
         res.setHeader("Content-Type", "text/csv");
         res.setHeader(
             "Content-Disposition",

@@ -5,6 +5,7 @@
     <title>Expense App</title>
 </head>
 
+
 <body>
 
 <h2>Dashboard</h2>
@@ -24,16 +25,18 @@
 <!-- EXPENSE SECTION -->
 <h3>Your Expenses</h3>
 
-<label>Expenses per page:</label>
+<label for="pageSize">Expenses per page:</label>
+
 <select id="pageSize" onchange="changePageSize()">
-    <option value="2">2</option>
     <option value="5">5</option>
     <option value="10">10</option>
+    <option value="15">15</option>
 </select>
 
 <ul id="list"></ul>
 
-<h3>Total: ₹<span id="total">0</span></h3>
+<h3>Total Expenses:<span id="total">0</span></h3>
+
 
 <div id="pagination"></div>
 

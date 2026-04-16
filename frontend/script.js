@@ -2,7 +2,7 @@ const BASE_URL = "http://localhost:3000/api";
 
 // ---------------- GLOBALS ----------------
 let currentPage = 1;
-let pageSize = localStorage.getItem("pageSize") || 10;
+let pageSize = Number(localStorage.getItem("pageSize")) || 10;
 
 // ---------------- SIGNUP ----------------
 async function signup() {
@@ -126,7 +126,7 @@ async function fetchCategory(amount, description) {
 function changePageSize() {
     const selector = document.getElementById("pageSize");
 
-    pageSize = selector.value;
+    pageSize = Number(selector.value);
     localStorage.setItem("pageSize", pageSize);
 
     currentPage = 1;
@@ -199,6 +199,7 @@ function logout() {
 }
 
 // ---------------- PREMIUM ----------------
+// ---------------- PREMIUM ----------------
 async function buyPremium() {
     try {
         const token = localStorage.getItem("token");
@@ -216,24 +217,42 @@ async function buyPremium() {
             order_id: data.order.id,
 
             handler: async function (response) {
-                const verifyRes = await fetch(`${BASE_URL}/verify`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: token
-                    },
-                    body: JSON.stringify(response)
-                });
+                try {
+                    const verifyRes = await fetch(`${BASE_URL}/verify`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: token
+                        },
+                        body: JSON.stringify(response)
+                    });
 
-                const verifyData = await verifyRes.json();
+                    const verifyData = await verifyRes.json();
 
-                if (verifyData.success) {
-                    alert("Premium Activated!");
+                    // ✅ FIX: more reliable check
+                    if (verifyRes.ok || verifyData.success) {
 
-                    localStorage.setItem("isPremium", "true");
+                        alert("Premium Activated!");
 
-                    document.getElementById("downloadBtn").disabled = false;
-                    document.getElementById("buyBtn").disabled = true;
+                        // save premium state
+                        localStorage.setItem("isPremium", "true");
+
+                        // ✅ immediate UI update (IMPORTANT)
+                        const buyBtn = document.getElementById("buyBtn");
+                        const downloadBtn = document.getElementById("downloadBtn");
+
+                        if (buyBtn) buyBtn.disabled = true;
+                        if (downloadBtn) downloadBtn.disabled = false;
+
+                        // optional refresh
+                        loadLeaderboard();
+                    } else {
+                        alert("Payment verification failed");
+                    }
+
+                } catch (err) {
+                    console.error(err);
+                    alert("Verification error");
                 }
             },
 
@@ -314,6 +333,12 @@ async function loadLeaderboard() {
 
 // ---------------- INIT ----------------
 document.addEventListener("DOMContentLoaded", () => {
+    //---//
+    const selector = document.getElementById("pageSize");
+if (selector) {
+    selector.value = pageSize;   //  THIS LINE FIXES EVERYTHING
+}
+//---//
 
     const buyBtn = document.getElementById("buyBtn");
     const downloadBtn = document.getElementById("downloadBtn");
